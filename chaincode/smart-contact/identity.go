@@ -51,7 +51,6 @@ func (s *SmartContract) CreateIdentity(ctx contractapi.TransactionContextInterfa
 
 	exists, err := s.IdentityExists(ctx, identity.Id)
 	if err != nil {
-
 		return err
 	}
 	if exists {
@@ -72,6 +71,7 @@ func (s *SmartContract) CreateIdentity(ctx contractapi.TransactionContextInterfa
 		return err
 	}
 
+	fmt.Printf("put identity data to world state")
 	return ctx.GetStub().PutState(identity.Id, jsonByte)
 }
 
@@ -81,6 +81,7 @@ func (s *SmartContract) ReadIdentity(ctx contractapi.TransactionContextInterface
 		return nil, errors.New("identity id is not provided")
 	}
 
+	fmt.Printf("get identity data from world state")
 	jsonByte, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read from world state: %v", err)
@@ -118,6 +119,7 @@ func (s *SmartContract) DeleteIdentity(ctx contractapi.TransactionContextInterfa
 		return fmt.Errorf("submitting client not authorized to delete identity, does not own identity")
 	}
 
+	fmt.Printf("delete identity data fron world state")
 	return ctx.GetStub().DelState(id)
 }
 
@@ -168,17 +170,18 @@ func (s *SmartContract) UpdateIdentity(ctx contractapi.TransactionContextInterfa
 		return err
 	}
 
+	fmt.Printf("update identity data to world state")
 	return ctx.GetStub().PutState(id, jsonByte)
 }
 
 // IdentityExists returns true when identity with given ID exists in world state
 func (s *SmartContract) IdentityExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	resp, err := ctx.GetStub().GetState(id)
+	_, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return false, fmt.Errorf("failed to read from world state: %v", err)
 	}
 
-	return resp != nil, nil
+	return true, nil
 }
 
 // GetSubmittingClientIdentity returns the name and issuer of the identity that
