@@ -49,11 +49,11 @@ func (s *SmartContract) CreateIdentity(ctx contractapi.TransactionContextInterfa
 		return errors.New("submitting identity is not authorized to create, does not have identity.id or not valid identity")
 	}
 
-	exists, err := s.IdentityExists(ctx, identity.Id)
+	idnty, err := s.ReadIdentity(ctx, identity.Id)
 	if err != nil {
 		return err
 	}
-	if exists {
+	if idnty.Id == identity.Id {
 		return fmt.Errorf("the identity %v already exists", identity.Id)
 	}
 
@@ -172,16 +172,6 @@ func (s *SmartContract) UpdateIdentity(ctx contractapi.TransactionContextInterfa
 
 	fmt.Printf("update identity data to world state")
 	return ctx.GetStub().PutState(id, jsonByte)
-}
-
-// IdentityExists returns true when identity with given ID exists in world state
-func (s *SmartContract) IdentityExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	_, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return false, fmt.Errorf("failed to read from world state: %v", err)
-	}
-
-	return true, nil
 }
 
 // GetSubmittingClientIdentity returns the name and issuer of the identity that
