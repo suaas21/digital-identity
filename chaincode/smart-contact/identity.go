@@ -49,13 +49,13 @@ func (s *SmartContract) CreateIdentity(ctx contractapi.TransactionContextInterfa
 		return errors.New("submitting identity is not authorized to create, does not have identity.id or not valid identity")
 	}
 
-	//idnty, err := s.ReadIdentity(ctx, identity.Id)
-	//if err != nil {
-	//	return err
-	//}
-	//if idnty.Id == identity.Id {
-	//	return fmt.Errorf("the identity %v already exists", identity.Id)
-	//}
+	exists, err := s.IdentityExists(ctx, identity.Id)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("the asset %s already exists", identity.Id)
+	}
 
 	// Get ID of submitting client identity
 	clientID, err := s.GetSubmittingClientIdentity(ctx)
@@ -143,25 +143,25 @@ func (s *SmartContract) UpdateIdentity(ctx contractapi.TransactionContextInterfa
 		return fmt.Errorf("submitting client not authorized to update identity, does not own identity")
 	}
 
-	if !isEmptyField(update.FirstName) {
+	if !isEmptyField(update.LastName) {
 		idnty.LastName = update.LastName
 	}
 	if !isEmptyField(update.FirstName) {
 		idnty.FirstName = update.FirstName
 	}
-	if !isEmptyField(update.FirstName) {
+	if !isEmptyField(update.Email) {
 		idnty.Email = update.Email
 	}
-	if !isEmptyField(update.FirstName) {
+	if !isEmptyField(update.Phone) {
 		idnty.Phone = update.Phone
 	}
-	if !isEmptyField(update.FirstName) {
+	if !isEmptyField(update.Dob) {
 		idnty.Dob = update.Dob
 	}
-	if !isEmptyField(update.FirstName) {
+	if !isEmptyField(update.PresentAddress) {
 		idnty.PresentAddress = update.PresentAddress
 	}
-	if !isEmptyField(update.FirstName) {
+	if !isEmptyField(update.PermanentAddress) {
 		idnty.PermanentAddress = update.PermanentAddress
 	}
 
@@ -172,6 +172,20 @@ func (s *SmartContract) UpdateIdentity(ctx contractapi.TransactionContextInterfa
 
 	fmt.Printf("update identity data to world state")
 	return ctx.GetStub().PutState(id, jsonByte)
+}
+
+// IdentityExists returns true when asset with given ID exists in world state
+func (s *SmartContract) IdentityExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
+	assetJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to read from world state: %v", err)
+	}
+
+	if assetJSON == nil {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // GetSubmittingClientIdentity returns the name and issuer of the identity that
