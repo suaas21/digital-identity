@@ -97,7 +97,7 @@ func (fc *FabricClient) createIdentity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := fc.contract.SubmitTransaction("CreateAsset", string(assetJSON)); err != nil {
+	if _, err := fc.contract.SubmitTransaction("CreateIdentity", string(assetJSON)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -123,7 +123,7 @@ func (fc *FabricClient) updateIdentity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := fc.contract.SubmitTransaction("UpdateAsset", idnty.Id, string(assetJSON)); err != nil {
+	if _, err := fc.contract.SubmitTransaction("UpdateIdentity", idnty.Id, string(assetJSON)); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 			"status":  http.StatusInternalServerError,
 			"message": "Something went wrong: " + err.Error(),
@@ -151,7 +151,7 @@ func (fc *FabricClient) deleteIdentity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := fc.contract.SubmitTransaction("DeleteAsset", req.ID); err != nil {
+	if _, err := fc.contract.SubmitTransaction("DeleteIdentity", req.ID); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 			"status":  http.StatusInternalServerError,
 			"message": "Something went wrong: " + err.Error(),
@@ -172,7 +172,7 @@ func (fc *FabricClient) getIdentity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := fc.contract.EvaluateTransaction("ReadAsset", id)
+	result, err := fc.contract.EvaluateTransaction("ReadIdentity", id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
