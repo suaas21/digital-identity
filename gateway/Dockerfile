@@ -40,7 +40,7 @@ EXPOSE 8080
 # Default environment variables
 ENV PORT=8080 \
     CHANNEL_NAME=mychannel \
-    CHAINCODE_NAME=asset-transfer \
+    CHAINCODE_NAME=identity \
     MSP_ID=Org1MSP \
     PEER_ENDPOINT=test-network-org1-peer1-peer.localho.st:443 \
     PEER_HOST_ALIAS=test-network-org1-peer1-peer.localho.st
