@@ -49,13 +49,13 @@ func (s *SmartContract) CreateIdentity(ctx contractapi.TransactionContextInterfa
 		return errors.New("submitting identity is not authorized to create, does not have identity.id or not valid identity")
 	}
 
-	idnty, err := s.ReadIdentity(ctx, identity.Id)
-	if err != nil {
-		return err
-	}
-	if idnty.Id == identity.Id {
-		return fmt.Errorf("the identity %v already exists", identity.Id)
-	}
+	//idnty, err := s.ReadIdentity(ctx, identity.Id)
+	//if err != nil {
+	//	return err
+	//}
+	//if idnty.Id == identity.Id {
+	//	return fmt.Errorf("the identity %v already exists", identity.Id)
+	//}
 
 	// Get ID of submitting client identity
 	clientID, err := s.GetSubmittingClientIdentity(ctx)
