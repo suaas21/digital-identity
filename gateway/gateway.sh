@@ -30,10 +30,11 @@ function launch_rest() {
 }
 
 function delete_rest() {
+  export WORKSHOP_NAMESPACE=test-network
   echo "deleting secret mysecret"
   kubectl delete secret my-secret -n $WORKSHOP_NAMESPACE
   echo "deleting rest deploy"
-  kubectl -n $WORKSHOP_NAMESPACE  apply -f ./deployment.yaml
+  kubectl -n $WORKSHOP_NAMESPACE apply -f ./deployment.yaml
 }
 
 delete_rest

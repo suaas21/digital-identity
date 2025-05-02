@@ -22,9 +22,10 @@ func InitFabricConnection() (*FabricClient, error) {
 	keyPath := envOrDefault("KEY_PATH", "/etc/secret-volume/keyPath")
 	tlsCertPath := envOrDefault("TLS_CERT_PATH", "/etc/secret-volume/tlsCertPath")
 	peerEndpoint := envOrDefault("PEER_ENDPOINT", "test-network-org1-peer1-peer.localho.st:443")
+	gatewayPeer := envOrDefault("GATEWAY_PEER", "test-network-org1-peer1-peer.localho.st")
 
 	// Create gRPC client connection
-	clientConnection, err := newGrpcConnection(tlsCertPath, peerEndpoint)
+	clientConnection, err := newGrpcConnection(tlsCertPath, peerEndpoint, gatewayPeer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC connection: %w", err)
 	}
@@ -60,7 +61,7 @@ func InitFabricConnection() (*FabricClient, error) {
 	}, nil
 }
 
-func newGrpcConnection(tlsCertPath, peerEndpoint string) (*grpc.ClientConn, error) {
+func newGrpcConnection(tlsCertPath, peerEndpoint, gatewayPeer string) (*grpc.ClientConn, error) {
 	certificate, err := loadCertificate(tlsCertPath)
 	if err != nil {
 		return nil, err
@@ -68,7 +69,7 @@ func newGrpcConnection(tlsCertPath, peerEndpoint string) (*grpc.ClientConn, erro
 
 	certPool := x509.NewCertPool()
 	certPool.AddCert(certificate)
-	transportCredentials := credentials.NewClientTLSFromCert(certPool, peerEndpoint)
+	transportCredentials := credentials.NewClientTLSFromCert(certPool, gatewayPeer)
 
 	connection, err := grpc.NewClient(peerEndpoint, grpc.WithTransportCredentials(transportCredentials))
 	if err != nil {
@@ -90,16 +91,6 @@ func newIdentity(certPath, mspId string) (*identity.X509Identity, error) {
 
 // newSign creates a function that generates a digital signature from a message digest using a private key.
 func newSign(keyPath string) (identity.Sign, error) {
-	//files, err := os.ReadDir(keyPath)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to read private key directory: %w", err)
-	//}
-
-	//if len(files) <= 0 {
-	//	return nil, fmt.Errorf("no file name found to load")
-	//}
-
-	//privateKeyPEM, err := os.ReadFile(path.Join(keyPath, files[0].Name()))
 	privateKeyPEM, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key file: %w", err)
