@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"os"
-	"path"
 	"time"
 )
 
@@ -91,16 +90,17 @@ func newIdentity(certPath, mspId string) (*identity.X509Identity, error) {
 
 // newSign creates a function that generates a digital signature from a message digest using a private key.
 func newSign(keyPath string) (identity.Sign, error) {
-	files, err := os.ReadDir(keyPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read private key directory: %w", err)
-	}
+	//files, err := os.ReadDir(keyPath)
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to read private key directory: %w", err)
+	//}
 
-	if len(files) <= 0 {
-		return nil, fmt.Errorf("no file name found to load")
-	}
+	//if len(files) <= 0 {
+	//	return nil, fmt.Errorf("no file name found to load")
+	//}
 
-	privateKeyPEM, err := os.ReadFile(path.Join(keyPath, files[0].Name()))
+	//privateKeyPEM, err := os.ReadFile(path.Join(keyPath, files[0].Name()))
+	privateKeyPEM, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key file: %w", err)
 	}

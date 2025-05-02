@@ -17,6 +17,7 @@ function launch_rest() {
 
     #configure secrets
     kubectl -n $WORKSHOP_NAMESPACE delete secret my-secret || true
+    echo "creating rest secret my-secret"
     kubectl create secret generic my-secret --from-file=keyPath="$keyPath"  --from-file=certPath="$ca_pem" --from-file=tlsCertPath="$peer_pem" -n $WORKSHOP_NAMESPACE
     #build docker image and push to local registry
     echo "building restapi docker image"
@@ -28,4 +29,12 @@ function launch_rest() {
     kubectl -n $WORKSHOP_NAMESPACE apply -f ./deployment.yaml
 }
 
+function delete_rest() {
+  echo "deleting secret mysecret"
+  kubectl delete secret my-secret -n $WORKSHOP_NAMESPACE
+  echo "deleting rest deploy"
+  kubectl -n $WORKSHOP_NAMESPACE  apply -f ./deployment.yaml
+}
+
+delete_rest
 launch_rest
