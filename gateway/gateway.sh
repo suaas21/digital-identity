@@ -2,7 +2,7 @@
 
 function launch_rest() {
     export ORG=org1
-    export USERNAME=org1user
+    export USERNAME=org1user1
 
     export WORKSHOP_INGRESS_DOMAIN=localho.st
     export WORKSHOP_NAMESPACE=test-network

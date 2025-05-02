@@ -3,9 +3,9 @@
 function enrollUser() {
     export MSP_ID=Org1MSP
     export ORG=org1
-    export USERNAME=org1user
-    export PASSWORD=org1user
-    export USER_ID=org1-101
+    export USERNAME=org1user1
+    export PASSWORD=org1user1
+    export USER_ID=org1-102
 
     export WORKSHOP_CRYPTO=/root/fabric-samples/full-stack-asset-transfer-guide/infrastructure/sample-network/temp
     export USER_MSP_DIR=$WORKSHOP_CRYPTO/enrollments/${ORG}/users/${USERNAME}/msp
@@ -18,7 +18,7 @@ function enrollUser() {
 
     log "Register and enroll a new user at the org CA"
     log "registering $USERNAME"
-    fabric-ca-client  register \
+    /root/fabric-samples/bin/fabric-ca-client  register \
       --id.name       $USERNAME \
       --id.secret     $PASSWORD \
       --id.type       client \
@@ -28,7 +28,7 @@ function enrollUser() {
       --tls.certfiles $WORKSHOP_CRYPTO/cas/$ORG-ca/tls-cert.pem \
       --mspdir        $WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp
 
-    fabric-ca-client enroll \
+    /root/fabric-samples/bin/fabric-ca-client enroll \
       --url           https://$USERNAME:$PASSWORD@$WORKSHOP_NAMESPACE-$ORG-ca-ca.$WORKSHOP_INGRESS_DOMAIN \
       --tls.certfiles $WORKSHOP_CRYPTO/cas/$ORG-ca/tls-cert.pem \
       --mspdir        $WORKSHOP_CRYPTO/enrollments/$ORG/users/$USERNAME/msp
