@@ -1,4 +1,15 @@
-## PROD - Required Tools for Kubernetes Deployment
+# Hyperledger fabric network 
+- Deploy kind cluster, local image registry, and nginx ingress
+- Deploy Hyperledger fabric crds, operator
+- Deploy simple network 
+- Create 2 organization's channel
+- Build chain as a service for user digital identity
+- Enroll user msp using enroller service
+- Deploy gateway service for rest API
+
+
+
+## Required Tools for Kubernetes Deployment
 
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [jq](https://stedolan.github.io/jq/)
