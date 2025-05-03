@@ -8,7 +8,7 @@
 - Workshop environment variables:
 ```shell
 
-export WORKSHOP_PATH=/root/fabric-samples/full-stack-asset-transfer-guide
+export WORKSHOP_PATH=$(pwd)
 export FABRIC_CFG_PATH=${WORKSHOP_PATH}/config  
 export PATH=${WORKSHOP_PATH}/bin:$PATH
 
@@ -17,7 +17,7 @@ export PATH=${WORKSHOP_PATH}/bin:$PATH
 - Set the location for the network's TLS certificates, channel MSP, and user enrollments:
 ```shell
 
-export WORKSHOP_CRYPTO=$WORKSHOP_PATH/infrastructure/sample-network/temp
+export WORKSHOP_CRYPTO=$WORKSHOP_PATH/network/temp
 ```
 
 ## Kubernetes IN Docker (KIND)

@@ -7,7 +7,7 @@ function launch_rest() {
     export WORKSHOP_INGRESS_DOMAIN=localho.st
     export WORKSHOP_NAMESPACE=test-network
 
-    export WORKSHOP_CRYPTO=/root/fabric-samples/full-stack-asset-transfer-guide/infrastructure/sample-network/temp
+    export WORKSHOP_CRYPTO=/root/digital-identity/network/temp
     export ENROLLMENT_DIR=${WORKSHOP_CRYPTO}/enrollments
     export CHANNEL_MSP_DIR=${WORKSHOP_CRYPTO}/channel-msp
 

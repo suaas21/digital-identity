@@ -7,7 +7,7 @@ function enrollUser() {
     export PASSWORD=org1user1
     export USER_ID=org1-102
 
-    export WORKSHOP_CRYPTO=/root/fabric-samples/full-stack-asset-transfer-guide/infrastructure/sample-network/temp
+    export WORKSHOP_CRYPTO=/root/digital-identity/network/temp
     export USER_MSP_DIR=$WORKSHOP_CRYPTO/enrollments/${ORG}/users/${USERNAME}/msp
 
     export WORKSHOP_INGRESS_DOMAIN=localho.st
