@@ -16,3 +16,16 @@ export WORKSHOP_PATH=$(pwd)
 export PATH=${WORKSHOP_PATH}/bin:$PATH
 export FABRIC_CFG_PATH=${WORKSHOP_PATH}/config
 ```
+
+## Set Ingress and namespace environment variables
+
+```shell
+export WORKSHOP_INGRESS_DOMAIN=localho.st
+export WORKSHOP_NAMESPACE=test-network
+```
+
+## just magic
+
+```shell
+just
+```

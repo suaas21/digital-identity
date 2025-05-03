@@ -1,5 +1,7 @@
 ## Example rest curl command:
 
+## port-forward the gateway rest deployment with 8080 port then do the followings:
+
 ### create identity
 ```curl
 curl --header "Content-Type: application/json" \

@@ -142,7 +142,6 @@ function print_help() {
 . scripts/console.sh
 . scripts/channel.sh
 . scripts/rest_sample.sh
-. scripts/frontend_build.sh
 
 # check for kind, kubectl, etc.
 check_prereqs

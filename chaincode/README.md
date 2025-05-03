@@ -8,7 +8,7 @@
 - Workshop environment variables:
 ```shell
 
-export WORKSHOP_PATH=$(pwd)
+export WORKSHOP_PATH=/root/digital-identity
 export FABRIC_CFG_PATH=${WORKSHOP_PATH}/config  
 export PATH=${WORKSHOP_PATH}/bin:$PATH
 
