@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/hyperledger/fabric-gateway/pkg/client"
+	"google.golang.org/grpc"
 	"log"
 	"net/http"
 )
@@ -24,20 +25,15 @@ type Identity struct {
 	Owner            string `json:"owner"`
 }
 
-type FabricClient struct {
-	gateway  *client.Gateway
-	contract *client.Contract
-}
-
 func main() {
-	// Initialize Fabric connection
-	fabricClient, err := InitFabricConnection()
+	// new grpc connection to fabric peer
+	grpcConn, err := newGrpcConnection()
 	if err != nil {
-		log.Fatalf("Failed to initialize Fabric connection: %v", err)
+		log.Fatalf("Failed to initialize gRPC connection: %v", err)
 	}
 	defer func() {
-		err = fabricClient.gateway.Close()
-		log.Fatalf("Failed to close gateway connection: %v", err)
+		err = grpcConn.Close()
+		log.Fatalf("Failed to close GRPC connection: %v", err)
 	}()
 
 	// Create router
@@ -49,16 +45,16 @@ func main() {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-User-Cert", "X-User-Key", "X-User-MSPID"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
 	// Set up routes
-	r.Post("/create", fabricClient.createIdentity)
-	r.Post("/update", fabricClient.updateIdentity)
-	r.Post("/delete", fabricClient.deleteIdentity)
-	r.Get("/get/{id}", fabricClient.getIdentity)
+	r.Post("/create", createIdentityHandler(grpcConn))
+	r.Post("/update", updateIdentityHandler(grpcConn))
+	r.Post("/delete", deleteIdentityHandler(grpcConn))
+	r.Get("/get/{id}", getIdentityHandler(grpcConn))
 
 	// Start server
 	port := envOrDefault("PORT", "8080")
@@ -66,125 +62,286 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
 
-func (fc *FabricClient) createIdentity(w http.ResponseWriter, r *http.Request) {
-	var idnty Identity
-	if err := json.NewDecoder(r.Body).Decode(&idnty); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+func createIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract identity headers
+		certPEM := r.Header.Get("X-User-Cert")
+		keyPEM := r.Header.Get("X-User-Key")
+		mspID := r.Header.Get("X-User-MSPID")
 
-	if isEmptyField(idnty.Id) {
-		http.Error(w, "identity id is not provided", http.StatusBadRequest)
-		return
-	}
+		if certPEM == "" || keyPEM == "" || mspID == "" {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Missing required identity headers (X-User-Cert, X-User-Key, X-User-MSPID)",
+			})
+			return
+		}
 
-	if isEmptyField(idnty.FirstName) {
-		http.Error(w, "identity firstName is not provided", http.StatusBadRequest)
-		return
-	}
+		// Create gateway connection for this identity
+		gw, contract, err := newGatewayFromIdentity(grpcConn, certPEM, keyPEM, mspID)
+		if err != nil {
+			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
+				"status":  http.StatusUnauthorized,
+				"message": "Invalid identity credentials: " + err.Error(),
+			})
+			return
+		}
+		defer gw.Close()
 
-	if isEmptyField(idnty.Phone) {
-		http.Error(w, "identity phone is not provided", http.StatusBadRequest)
-	}
+		// Parse request body
+		var idnty Identity
+		if err := json.NewDecoder(r.Body).Decode(&idnty); err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Invalid request body: " + err.Error(),
+			})
+			return
+		}
 
-	if isEmptyField(idnty.NationalID) {
-		http.Error(w, "identity national id is not provided", http.StatusBadRequest)
-	}
+		// Validate required fields
+		if isEmptyField(idnty.Id) {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Identity ID is required",
+			})
+			return
+		}
 
-	assetJSON, err := json.Marshal(idnty)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		requiredFields := map[string]string{
+			"firstName":  idnty.FirstName,
+			"phone":      idnty.Phone,
+			"nationalID": idnty.NationalID,
+		}
 
-	if _, err := fc.contract.SubmitTransaction("CreateIdentity", string(assetJSON)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		for field, value := range requiredFields {
+			if isEmptyField(value) {
+				respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+					"status":  http.StatusBadRequest,
+					"message": fmt.Sprintf("Field %s is required", field),
+				})
+				return
+			}
+		}
 
-	respondJSON(w, http.StatusOK, map[string]string{"AssetId": idnty.Id})
-}
+		// Submit transaction
+		assetJSON, err := json.Marshal(idnty)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"status":  http.StatusInternalServerError,
+				"message": "Error marshaling identity: " + err.Error(),
+			})
+			return
+		}
 
-func (fc *FabricClient) updateIdentity(w http.ResponseWriter, r *http.Request) {
-	var idnty Identity
-	if err := json.NewDecoder(r.Body).Decode(&idnty); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+		if _, err := contract.SubmitTransaction("CreateIdentity", string(assetJSON)); err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"status":  http.StatusInternalServerError,
+				"message": "Chaincode error: " + err.Error(),
+			})
+			return
+		}
 
-	if isEmptyField(idnty.Id) {
-		http.Error(w, "identity id is not provided", http.StatusBadRequest)
-		return
-	}
-
-	assetJSON, err := json.Marshal(idnty)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if _, err := fc.contract.SubmitTransaction("UpdateIdentity", idnty.Id, string(assetJSON)); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
-			"status":  http.StatusInternalServerError,
-			"message": "Something went wrong: " + err.Error(),
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"status":  http.StatusOK,
+			"message": "Identity created successfully",
+			"assetId": idnty.Id,
 		})
-		return
 	}
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":  http.StatusOK,
-		"message": "Update success",
-	})
 }
 
-func (fc *FabricClient) deleteIdentity(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		ID string `json:"id"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+func updateIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract identity headers
+		certPEM := r.Header.Get("X-User-Cert")
+		keyPEM := r.Header.Get("X-User-Key")
+		mspID := r.Header.Get("X-User-MSPID")
 
-	if isEmptyField(req.ID) {
-		http.Error(w, "identity id is not provided", http.StatusBadRequest)
-		return
-	}
+		if certPEM == "" || keyPEM == "" || mspID == "" {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Missing required identity headers",
+			})
+			return
+		}
 
-	if _, err := fc.contract.SubmitTransaction("DeleteIdentity", req.ID); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
-			"status":  http.StatusInternalServerError,
-			"message": "Something went wrong: " + err.Error(),
+		// Create gateway connection
+		gw, contract, err := newGatewayFromIdentity(grpcConn, certPEM, keyPEM, mspID)
+		if err != nil {
+			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
+				"status":  http.StatusUnauthorized,
+				"message": "Invalid identity credentials: " + err.Error(),
+			})
+			return
+		}
+		defer gw.Close()
+
+		// Parse request
+		var idnty Identity
+		if err := json.NewDecoder(r.Body).Decode(&idnty); err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Invalid request body",
+			})
+			return
+		}
+
+		if isEmptyField(idnty.Id) {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Identity ID is required",
+			})
+			return
+		}
+
+		// Submit transaction
+		assetJSON, err := json.Marshal(idnty)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"status":  http.StatusInternalServerError,
+				"message": "Error marshaling identity",
+			})
+			return
+		}
+
+		if _, err := contract.SubmitTransaction("UpdateIdentity", idnty.Id, string(assetJSON)); err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"status":  http.StatusInternalServerError,
+				"message": "Chaincode error: " + err.Error(),
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"status":  http.StatusOK,
+			"message": "Identity updated successfully",
+			"assetId": idnty.Id,
 		})
-		return
 	}
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":  http.StatusOK,
-		"message": "Delete success",
-	})
 }
 
-func (fc *FabricClient) getIdentity(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if isEmptyField(id) {
-		http.Error(w, "identity id is not provided", http.StatusBadRequest)
-		return
-	}
+func deleteIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract identity headers
+		certPEM := r.Header.Get("X-User-Cert")
+		keyPEM := r.Header.Get("X-User-Key")
+		mspID := r.Header.Get("X-User-MSPID")
 
-	result, err := fc.contract.EvaluateTransaction("ReadIdentity", id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		if certPEM == "" || keyPEM == "" || mspID == "" {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Missing required identity headers",
+			})
+			return
+		}
 
-	var idnty Identity
-	if err := json.Unmarshal(result, &idnty); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		// Create gateway connection
+		gw, contract, err := newGatewayFromIdentity(grpcConn, certPEM, keyPEM, mspID)
+		if err != nil {
+			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
+				"status":  http.StatusUnauthorized,
+				"message": "Invalid identity credentials",
+			})
+			return
+		}
+		defer gw.Close()
 
-	respondJSON(w, http.StatusOK, idnty)
+		// Parse request
+		var request struct {
+			ID string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Invalid request body",
+			})
+			return
+		}
+
+		if isEmptyField(request.ID) {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Identity ID is required",
+			})
+			return
+		}
+
+		// Submit transaction
+		if _, err := contract.SubmitTransaction("DeleteIdentity", request.ID); err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"status":  http.StatusInternalServerError,
+				"message": "Chaincode error: " + err.Error(),
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"status":  http.StatusOK,
+			"message": "Identity deleted successfully",
+			"assetId": request.ID,
+		})
+	}
+}
+
+func getIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract identity headers
+		certPEM := r.Header.Get("X-User-Cert")
+		keyPEM := r.Header.Get("X-User-Key")
+		mspID := r.Header.Get("X-User-MSPID")
+
+		if certPEM == "" || keyPEM == "" || mspID == "" {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Missing required identity headers",
+			})
+			return
+		}
+
+		// Create gateway connection
+		gw, contract, err := newGatewayFromIdentity(grpcConn, certPEM, keyPEM, mspID)
+		if err != nil {
+			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
+				"status":  http.StatusUnauthorized,
+				"message": "Invalid identity credentials",
+			})
+			return
+		}
+		defer gw.Close()
+
+		// Get ID from URL
+		id := chi.URLParam(r, "id")
+		if isEmptyField(id) {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"status":  http.StatusBadRequest,
+				"message": "Identity ID is required",
+			})
+			return
+		}
+
+		// Evaluate transaction
+		result, err := contract.EvaluateTransaction("ReadIdentity", id)
+		if err != nil {
+			respondJSON(w, http.StatusNotFound, map[string]interface{}{
+				"status":  http.StatusNotFound,
+				"message": "Identity not found: " + err.Error(),
+			})
+			return
+		}
+
+		var identity Identity
+		if err := json.Unmarshal(result, &identity); err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"status":  http.StatusInternalServerError,
+				"message": "Error parsing identity data",
+			})
+			return
+		}
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"status":   http.StatusOK,
+			"identity": identity,
+		})
+	}
 }
 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {

@@ -11,57 +11,11 @@ import (
 	"time"
 )
 
-func InitFabricConnection() (*FabricClient, error) {
-	// Load connection parameters from environment
-	channelName := envOrDefault("CHANNEL_NAME", "mychannel")
-	chaincodeName := envOrDefault("CHAINCODE_NAME", "identity")
-	mspID := envOrDefault("MSP_ID", "Org1MSP")
-
-	// Load crypto material
-	certPath := envOrDefault("CERT_PATH", "/etc/secret-volume/certPath")
-	keyPath := envOrDefault("KEY_PATH", "/etc/secret-volume/keyPath")
+func newGrpcConnection() (*grpc.ClientConn, error) {
 	tlsCertPath := envOrDefault("TLS_CERT_PATH", "/etc/secret-volume/tlsCertPath")
 	peerEndpoint := envOrDefault("PEER_ENDPOINT", "test-network-org1-peer1-peer.localho.st:443")
 	gatewayPeer := envOrDefault("GATEWAY_PEER", "test-network-org1-peer1-peer.localho.st")
 
-	// Create gRPC client connection
-	clientConnection, err := newGrpcConnection(tlsCertPath, peerEndpoint, gatewayPeer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gRPC connection: %w", err)
-	}
-
-	id, err := newIdentity(certPath, mspID)
-	if err != nil {
-		return nil, err
-	}
-	sign, err := newSign(keyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	gw, err := client.Connect(
-		id,
-		client.WithSign(sign),
-		client.WithClientConnection(clientConnection),
-		client.WithEvaluateTimeout(5*time.Second),
-		client.WithEndorseTimeout(15*time.Second),
-		client.WithSubmitTimeout(5*time.Second),
-		client.WithCommitStatusTimeout(1*time.Minute),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to gateway: %w", err)
-	}
-
-	network := gw.GetNetwork(channelName)
-	contract := network.GetContract(chaincodeName)
-
-	return &FabricClient{
-		gateway:  gw,
-		contract: contract,
-	}, nil
-}
-
-func newGrpcConnection(tlsCertPath, peerEndpoint, gatewayPeer string) (*grpc.ClientConn, error) {
 	certificate, err := loadCertificate(tlsCertPath)
 	if err != nil {
 		return nil, err
@@ -79,34 +33,47 @@ func newGrpcConnection(tlsCertPath, peerEndpoint, gatewayPeer string) (*grpc.Cli
 	return connection, nil
 }
 
-// newIdentity creates a client identity for this Gateway connection using an X.509 certificate.
-func newIdentity(certPath, mspId string) (*identity.X509Identity, error) {
-	certificate, err := loadCertificate(certPath)
+func newGatewayFromIdentity(grpcConn *grpc.ClientConn, certPEM, keyPEM, mspID string) (*client.Gateway, *client.Contract, error) {
+	certificate, err := identity.CertificateFromPEM([]byte(certPEM))
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	return identity.NewX509Identity(mspId, certificate)
-}
-
-// newSign creates a function that generates a digital signature from a message digest using a private key.
-func newSign(keyPath string) (identity.Sign, error) {
-	privateKeyPEM, err := os.ReadFile(keyPath)
+	id, err := identity.NewX509Identity(mspID, certificate)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read private key file: %w", err)
+		return nil, nil, fmt.Errorf("failed to create identity: %w", err)
 	}
 
-	privateKey, err := identity.PrivateKeyFromPEM(privateKeyPEM)
+	privateKey, err := identity.PrivateKeyFromPEM([]byte(keyPEM))
 	if err != nil {
-		panic(err)
+		return nil, nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
 
 	sign, err := identity.NewPrivateKeySign(privateKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("failed to create signer: %w", err)
 	}
 
-	return sign, nil
+	gw, err := client.Connect(
+		id,
+		client.WithSign(sign),
+		client.WithClientConnection(grpcConn),
+		client.WithEvaluateTimeout(5*time.Second),
+		client.WithEndorseTimeout(15*time.Second),
+		client.WithSubmitTimeout(5*time.Second),
+		client.WithCommitStatusTimeout(1*time.Minute),
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to gateway: %w", err)
+	}
+
+	channelName := envOrDefault("CHANNEL_NAME", "mychannel")
+	chaincodeName := envOrDefault("CHAINCODE_NAME", "identity")
+
+	network := gw.GetNetwork(channelName)
+	contract := network.GetContract(chaincodeName)
+
+	return gw, contract, nil
 }
 
 func loadCertificate(filename string) (*x509.Certificate, error) {
