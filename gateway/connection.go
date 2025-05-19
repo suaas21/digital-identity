@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
@@ -34,7 +35,18 @@ func newGrpcConnection() (*grpc.ClientConn, error) {
 }
 
 func newGatewayFromIdentity(grpcConn *grpc.ClientConn, certPEM, keyPEM, mspID string) (*client.Gateway, *client.Contract, error) {
-	certificate, err := identity.CertificateFromPEM([]byte(certPEM))
+
+	certBytes, err := base64.StdEncoding.DecodeString(certPEM)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keyBytes, err := base64.StdEncoding.DecodeString(keyPEM)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	certificate, err := identity.CertificateFromPEM(certBytes)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
@@ -44,7 +56,7 @@ func newGatewayFromIdentity(grpcConn *grpc.ClientConn, certPEM, keyPEM, mspID st
 		return nil, nil, fmt.Errorf("failed to create identity: %w", err)
 	}
 
-	privateKey, err := identity.PrivateKeyFromPEM([]byte(keyPEM))
+	privateKey, err := identity.PrivateKeyFromPEM(keyBytes)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
