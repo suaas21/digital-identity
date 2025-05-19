@@ -177,10 +177,10 @@ func updateIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
 
 		// Parse request
 		var idnty Identity
-		if err := json.NewDecoder(r.Body).Decode(&idnty); err != nil {
+		if err = json.NewDecoder(r.Body).Decode(&idnty); err != nil {
 			respondJSON(w, http.StatusBadRequest, map[string]interface{}{
 				"status":  http.StatusBadRequest,
-				"message": "Invalid request body",
+				"message": "Invalid request body:  " + err.Error(),
 			})
 			return
 		}
@@ -198,12 +198,12 @@ func updateIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
 		if err != nil {
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"status":  http.StatusInternalServerError,
-				"message": "Error marshaling identity",
+				"message": "Error marshaling identity:  " + err.Error(),
 			})
 			return
 		}
 
-		if _, err := contract.SubmitTransaction("UpdateIdentity", idnty.Id, string(assetJSON)); err != nil {
+		if _, err = contract.SubmitTransaction("UpdateIdentity", idnty.Id, string(assetJSON)); err != nil {
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"status":  http.StatusInternalServerError,
 				"message": "Chaincode error: " + err.Error(),
@@ -239,7 +239,7 @@ func deleteIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
 		if err != nil {
 			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
 				"status":  http.StatusUnauthorized,
-				"message": "Invalid identity credentials",
+				"message": "Invalid identity credentials:  " + err.Error(),
 			})
 			return
 		}
@@ -266,7 +266,7 @@ func deleteIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
 		}
 
 		// Submit transaction
-		if _, err := contract.SubmitTransaction("DeleteIdentity", request.ID); err != nil {
+		if _, err = contract.SubmitTransaction("DeleteIdentity", request.ID); err != nil {
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"status":  http.StatusInternalServerError,
 				"message": "Chaincode error: " + err.Error(),
@@ -302,7 +302,7 @@ func getIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
 		if err != nil {
 			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
 				"status":  http.StatusUnauthorized,
-				"message": "Invalid identity credentials",
+				"message": fmt.Sprintf("Invalid identity credentials: err: %v", err),
 			})
 			return
 		}
@@ -329,10 +329,10 @@ func getIdentityHandler(grpcConn *grpc.ClientConn) http.HandlerFunc {
 		}
 
 		var identity Identity
-		if err := json.Unmarshal(result, &identity); err != nil {
+		if err = json.Unmarshal(result, &identity); err != nil {
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"status":  http.StatusInternalServerError,
-				"message": "Error parsing identity data",
+				"message": "Error parsing identity data:  " + err.Error(),
 			})
 			return
 		}

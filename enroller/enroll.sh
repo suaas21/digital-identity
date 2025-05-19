@@ -3,9 +3,9 @@
 function enrollUser() {
     export MSP_ID=Org1MSP
     export ORG=org1
-    export USERNAME=org1user1
-    export PASSWORD=org1user1
-    export USER_ID=org1-102
+    export USERNAME=org1user111
+    export PASSWORD=org1user111
+    export USER_ID=org1-111
 
     export WORKSHOP_CRYPTO=/root/digital-identity/network/temp
     export USER_MSP_DIR=$WORKSHOP_CRYPTO/enrollments/${ORG}/users/${USERNAME}/msp
