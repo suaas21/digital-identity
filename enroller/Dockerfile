@@ -21,11 +21,17 @@ FROM alpine:3.19
 
 WORKDIR /app
 
-# Install CA certificates for TLS connections
-RUN apk --no-cache add ca-certificates tzdata
+# Install required dependencies
+RUN apk add --no-cache \
+    curl \
+    wget \
+    ca-certificates \
+    tzdata \
 
 # Install fabric-ca-client
-RUN curl -sSL https://github.com/hyperledger/fabric-ca/releases/download/v1.5.7/hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz | tar xz -C /usr/local/bin --strip-components=1
+RUN wget https://github.com/hyperledger/fabric-ca/releases/download/v1.5.7/hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz && \
+    tar xzf hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz -C /usr/local/bin --strip-components=1 && \
+    rm hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz
 
 # Create directory for crypto material
 RUN mkdir -p /etc/tls
