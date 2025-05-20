@@ -29,11 +29,13 @@ RUN apk add --no-cache \
     && update-ca-certificates
 
 # Install fabric-ca-client with proper verification
+# Install fabric-ca-client with proper path handling
 RUN wget https://github.com/hyperledger/fabric-ca/releases/download/v1.5.7/hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz \
-    && tar xzf hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz -C /usr/local/bin \
+    && tar xzf hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz -C /usr/local/bin --strip-components=1 \
     && rm hyperledger-fabric-ca-linux-amd64-1.5.7.tar.gz \
     && mv /usr/local/bin/fabric-ca-client /usr/local/bin/fabric-ca-client-v1.5.7 \
-    && ln -s /usr/local/bin/fabric-ca-client-v1.5.7 /usr/local/bin/fabric-ca-client
+    && ln -s /usr/local/bin/fabric-ca-client-v1.5.7 /usr/local/bin/fabric-ca-client \
+    && chmod +x /usr/local/bin/fabric-ca-client*
 
 # Create directory for crypto material
 RUN mkdir -p /etc/tls
