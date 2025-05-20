@@ -18,6 +18,13 @@ spec:
         - name: rcaadmin-msp
           secret:
             secretName: rcaadmin-msp
+            items:
+              - key: cacerts/cacert.pem
+                path: cacerts/cacert.pem
+              - key: keystore/key.pem
+                path: keystore/key.pem
+              - key: signcerts/cert.pem
+                path: signcerts/cert.pem
         - name: tls-certs
           secret:
             secretName: tls-certs
