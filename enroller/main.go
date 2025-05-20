@@ -30,7 +30,7 @@ type VaultStore struct {
 type Config struct {
 	MSPID         string
 	Org           string
-	CryptoPath    string
+	TLSCertPath   string
 	IngressDomain string
 	Namespace     string
 	VaultAddr     string
@@ -61,19 +61,16 @@ func NewVaultStore(cfg *Config) (*VaultStore, error) {
 }
 
 func loadConfig() *Config {
-	homeDir, _ := os.UserHomeDir()
-	rcamsp := filepath.Join(homeDir, "digital-identity", "network", "temp", "enrollments", "org1", "users", "rcaadmin", "msp")
-
 	return &Config{
 		MSPID:         getEnvWithDefault("MSP_ID", "Org1MSP"),
 		Org:           getEnvWithDefault("ORG", "org1"),
-		CryptoPath:    getEnvWithDefault("WORKSHOP_CRYPTO", filepath.Join(homeDir, "digital-identity", "network", "temp")),
+		TLSCertPath:   getEnvWithDefault("TLS_CERT_PATH", "/etc/tls/tls-cert.pem"),
 		IngressDomain: getEnvWithDefault("WORKSHOP_INGRESS_DOMAIN", "localho.st"),
 		Namespace:     getEnvWithDefault("WORKSHOP_NAMESPACE", "test-network"),
 		VaultAddr:     getEnvWithDefault("VAULT_ADDR", "http://127.0.0.1:8200"),
 		VaultToken:    getEnvWithDefault("VAULT_TOKEN", "<vault-token>"),
 		KVPath:        getEnvWithDefault("VAULT_KV_PATH", "fabric/msp"),
-		RCAMSPPath:    getEnvWithDefault("RCAMSP_PATH", rcamsp),
+		RCAMSPPath:    getEnvWithDefault("RCAMSP_PATH", "/etc/rcaadmin/msp"),
 	}
 }
 
@@ -113,7 +110,9 @@ func main() {
 	})
 
 	log.Println("Server started on :8080")
-	http.ListenAndServe(":8080", r)
+	if err = http.ListenAndServe(":8080", r); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func handleRegister(w http.ResponseWriter, r *http.Request, cfg *Config, vault *VaultStore) {
@@ -256,7 +255,6 @@ func generatePassword() (string, error) {
 
 func registerUser(cfg *Config, username, password, userID string) error {
 	caAddress := fmt.Sprintf("%s-%s-ca-ca.%s", cfg.Namespace, cfg.Org, cfg.IngressDomain)
-	tlsCertPath := filepath.Join(cfg.CryptoPath, "cas", cfg.Org+"-ca", "tls-cert.pem")
 
 	cmd := exec.Command("fabric-ca-client", "register",
 		"--id.name", username,
@@ -265,7 +263,7 @@ func registerUser(cfg *Config, username, password, userID string) error {
 		"--id.affiliation", cfg.Org,
 		"--id.attrs", fmt.Sprintf("identity.id=%s:ecert", userID),
 		"--url", fmt.Sprintf("https://%s", caAddress),
-		"--tls.certfiles", tlsCertPath,
+		"--tls.certfiles", cfg.TLSCertPath,
 		"--mspdir", cfg.RCAMSPPath,
 	)
 
@@ -283,12 +281,11 @@ func enrollUser(cfg *Config, username, password string) (string, error) {
 	}
 
 	caAddress := fmt.Sprintf("%s-%s-ca-ca.%s", cfg.Namespace, cfg.Org, cfg.IngressDomain)
-	tlsCertPath := filepath.Join(cfg.CryptoPath, "cas", cfg.Org+"-ca", "tls-cert.pem")
 	enrollURL := fmt.Sprintf("https://%s:%s@%s", username, password, caAddress)
 
 	cmd := exec.Command("fabric-ca-client", "enroll",
 		"--url", enrollURL,
-		"--tls.certfiles", tlsCertPath,
+		"--tls.certfiles", cfg.TLSCertPath,
 		"--mspdir", tempDir,
 	)
 
@@ -306,7 +303,7 @@ func revokeUser(cfg *Config, vault *VaultStore, username, reason string) error {
 		"--revoke.name", username,
 		"--revoke.reason", reason,
 		"--url", fmt.Sprintf("https://%s-%s-ca-ca.%s", cfg.Namespace, cfg.Org, cfg.IngressDomain),
-		"--tls.certfiles", filepath.Join(cfg.CryptoPath, "cas", cfg.Org+"-ca", "tls-cert.pem"),
+		"--tls.certfiles", cfg.TLSCertPath,
 		"--mspdir", cfg.RCAMSPPath,
 	)
 

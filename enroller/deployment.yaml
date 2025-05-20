@@ -1,40 +1,53 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rest-api
+  name: enroller-api
   labels:
-    app: rest-api
+    app: enroller-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rest-api
+      app: enroller-api
   template:
     metadata:
       labels:
-        app: rest-api
+        app: enroller-api
     spec:
       volumes:
-        - name: secret-volume
+        - name: rcaadmin-msp
           secret:
-            secretName: gateway-tls-cert
+            secretName: rcaadmin-msp
+        - name: tls-certs
+          secret:
+            secretName: tls-certs
       containers:
-        - name: rest-api
-          image: localhost:5000/rest-api:latest
+        - name: enroller-api
+          image: localhost:5000/enroller-api:latest
           ports:
             - containerPort: 8080
+          env:
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vault-secret
+                  key: token
           volumeMounts:
-            - name: secret-volume
+            - name: rcaadmin-msp
+              mountPath: /etc/rcaadmin/msp
               readOnly: true
-              mountPath: "/etc/secret-volume"
+            - name: tls-certs
+              mountPath: /etc/tls/tls-cert.pem
+              subPath: tls-cert.pem
+              readOnly: true
 ---
 kind: Service
 apiVersion: v1
 metadata:
-  name: rest-api
+  name: enroller-api
 spec:
   selector:
-    app: rest-api
+    app: enroller-api
   ports:
     - protocol: TCP
       port: 80
@@ -43,12 +56,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: rest-api
+  name: enroller-api
   annotations:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: 60s
     # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
   # labels:
-  #   app: rest-api
+  #   app: enroller-api
   #   app.kubernetes.io/instance: fabricpeer
   #   app.kubernetes.io/managed-by: fabric-operator
   #   app.kubernetes.io/name: fabric
@@ -57,16 +70,16 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: restapi.localho.st
+    - host: enrollerapi.localho.st
       http:
         paths:
           - backend:
               service:
-                name: rest-api
+                name: enroller-api
                 port:
                   number: 80
             path: /
             pathType: ImplementationSpecific
   tls:
     - hosts:
-        - restapi.localho.st
+        - enrollerapi.localho.st

@@ -2,23 +2,15 @@
 
 function launch_rest() {
     export ORG=org1
-    export USERNAME=org1user111
-
     export WORKSHOP_INGRESS_DOMAIN=localho.st
     export WORKSHOP_NAMESPACE=test-network
-
     export WORKSHOP_CRYPTO=/root/digital-identity/network/temp
-    export ENROLLMENT_DIR=${WORKSHOP_CRYPTO}/enrollments
     export CHANNEL_MSP_DIR=${WORKSHOP_CRYPTO}/channel-msp
 
-    local peer_pem=$CHANNEL_MSP_DIR/peerOrganizations/$ORG/msp/tlscacerts/tlsca-signcert.pem
-    local ca_pem=$ENROLLMENT_DIR/$ORG/users/$USERNAME/msp/signcerts/cert.pem
-    local keyPath=$ENROLLMENT_DIR/$ORG/users/$USERNAME/msp/keystore/key.pem
+    local tls_pem=$CHANNEL_MSP_DIR/peerOrganizations/$ORG/msp/tlscacerts/tlsca-signcert.pem
 
-    #configure secrets
-    kubectl -n $WORKSHOP_NAMESPACE delete secret my-secret || true
-    echo "creating rest secret my-secret"
-    kubectl create secret generic my-secret --from-file=keyPath="$keyPath"  --from-file=certPath="$ca_pem" --from-file=tlsCertPath="$peer_pem" -n $WORKSHOP_NAMESPACE
+    echo "creating rest secret gateway-tls-cert"
+    kubectl create secret generic gateway-tls-cert --from-file=tlsCertPath="$tls_pem" -n $WORKSHOP_NAMESPACE
     #build docker image and push to local registry
     echo "building restapi docker image"
     docker build -t localhost:5000/rest-api .
@@ -31,10 +23,10 @@ function launch_rest() {
 
 function delete_rest() {
   export WORKSHOP_NAMESPACE=test-network
-  echo "deleting secret mysecret"
-  kubectl delete secret my-secret -n $WORKSHOP_NAMESPACE
+  echo "deleting secret gateway-tls-cert"
+  kubectl delete secret gateway-tls-cert -n $WORKSHOP_NAMESPACE
   echo "deleting rest deploy"
-  kubectl -n $WORKSHOP_NAMESPACE apply -f ./deployment.yaml
+  kubectl -n $WORKSHOP_NAMESPACE delete -f ./deployment.yaml
 }
 
 delete_rest
