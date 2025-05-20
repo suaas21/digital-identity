@@ -6,13 +6,15 @@ function launch_enroller() {
   export VAULT_TOKEN=token
   export WORKSHOP_NAMESPACE=test-network
 
+  # Create separate secrets for each MSP component
+  kubectl create secret -n $WORKSHOP_NAMESPACE generic rcaadmin-cacerts \
+    --from-file=cacert.pem=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/cacerts/test-network-org1-ca-ca-localho-st-443.pem
 
+  kubectl create secret -n $WORKSHOP_NAMESPACE generic rcaadmin-keystore \
+    --from-file=key.pem=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/keystore/6c28bc5f13c33f014cc69d7f2cd45f2c4471390d686e9021d5427a2f9725da23_sk
 
-  # Create secret for RCA Admin MSP
-  kubectl create secret -n $WORKSHOP_NAMESPACE generic rcaadmin-msp \
-    --from-file=cacerts=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/cacerts/test-network-org1-ca-ca-localho-st-443.pem \
-    --from-file=keystore=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/keystore/6c28bc5f13c33f014cc69d7f2cd45f2c4471390d686e9021d5427a2f9725da23_sk \
-    --from-file=signcerts=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/signcerts/cert.pem
+  kubectl create secret -n $WORKSHOP_NAMESPACE generic rcaadmin-signcerts \
+    --from-file=cert.pem=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/signcerts/cert.pem
 
   # Create secret for TLS certificates
   kubectl create secret generic tls-certs \

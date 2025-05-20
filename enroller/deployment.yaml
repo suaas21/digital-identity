@@ -15,29 +15,18 @@ spec:
         app: enroller-api
     spec:
       volumes:
-        - name: rcaadmin-msp
+        - name: rcaadmin-cacerts
           secret:
-            secretName: rcaadmin-msp
+            secretName: rcaadmin-cacerts
+        - name: rcaadmin-keystore
+          secret:
+            secretName: rcaadmin-keystore
+        - name: rcaadmin-signcerts
+          secret:
+            secretName: rcaadmin-signcerts
         - name: tls-certs
           secret:
             secretName: tls-certs
-        - name: msp-store
-          emptyDir: { }
-      # Init container to create directory structure
-      initContainers:
-        - name: setup-msp-dirs
-          image: busybox:1.35
-          command: [ 'sh', '-c',
-            'mkdir -p /etc/rcaadmin/msp/{cacerts,keystore,signcerts,admincerts} &&
-          cp /secrets/cacert.pem /etc/rcaadmin/msp/cacerts/ &&
-          cp /secrets/keystore-key.pem /etc/rcaadmin/msp/keystore/ &&
-          cp /secrets/signcert.pem /etc/rcaadmin/msp/signcerts/ &&
-          cp /secrets/admincert.pem /etc/rcaadmin/msp/admincerts/' ]
-          volumeMounts:
-            - name: rcaadmin-msp
-              mountPath: /secrets
-            - name: msp-store
-              mountPath: /etc/rcaadmin/msp
       containers:
         - name: enroller-api
           image: localhost:5000/enroller-api:latest
@@ -50,8 +39,15 @@ spec:
                   name: vault-secret
                   key: token
           volumeMounts:
-            - name: msp-store
-              mountPath: /etc/rcaadmin/msp
+            - name: rcaadmin-cacerts
+              mountPath: /etc/rcaadmin/msp/cacerts
+              readOnly: true
+            - name: rcaadmin-keystore
+              mountPath: /etc/rcaadmin/msp/keystore
+              readOnly: true
+            - name: rcaadmin-signcerts
+              mountPath: /etc/rcaadmin/msp/signcerts
+              readOnly: true
             - name: tls-certs
               mountPath: /etc/tls/tls-cert.pem
               subPath: tls-cert.pem
