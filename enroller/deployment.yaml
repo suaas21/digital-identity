@@ -18,16 +18,26 @@ spec:
         - name: rcaadmin-msp
           secret:
             secretName: rcaadmin-msp
-            items:
-              - key: cacerts/cacert.pem
-                path: cacerts/cacert.pem
-              - key: keystore/key.pem
-                path: keystore/key.pem
-              - key: signcerts/cert.pem
-                path: signcerts/cert.pem
         - name: tls-certs
           secret:
             secretName: tls-certs
+        - name: msp-store
+          emptyDir: { }
+      # Init container to create directory structure
+      initContainers:
+        - name: setup-msp-dirs
+          image: busybox:1.35
+          command: [ 'sh', '-c',
+            'mkdir -p /etc/rcaadmin/msp/{cacerts,keystore,signcerts,admincerts} &&
+          cp /secrets/cacert.pem /etc/rcaadmin/msp/cacerts/ &&
+          cp /secrets/keystore-key.pem /etc/rcaadmin/msp/keystore/ &&
+          cp /secrets/signcert.pem /etc/rcaadmin/msp/signcerts/ &&
+          cp /secrets/admincert.pem /etc/rcaadmin/msp/admincerts/' ]
+          volumeMounts:
+            - name: rcaadmin-msp
+              mountPath: /secrets
+            - name: msp-store
+              mountPath: /etc/rcaadmin/msp
       containers:
         - name: enroller-api
           image: localhost:5000/enroller-api:latest
@@ -40,9 +50,8 @@ spec:
                   name: vault-secret
                   key: token
           volumeMounts:
-            - name: rcaadmin-msp
+            - name: msp-store
               mountPath: /etc/rcaadmin/msp
-              readOnly: true
             - name: tls-certs
               mountPath: /etc/tls/tls-cert.pem
               subPath: tls-cert.pem
