@@ -38,7 +38,9 @@ function launch_enroller() {
 function delete_enroller() {
   export WORKSHOP_NAMESPACE=test-network
   echo "deleting all secret"
-  kubectl delete secret rcaadmin-msp -n $WORKSHOP_NAMESPACE
+  kubectl delete secret  rcaadmin-signcerts -n $WORKSHOP_NAMESPACE
+  kubectl delete secret  rcaadmin-keystore -n $WORKSHOP_NAMESPACE
+  kubectl delete secret  rcaadmin-cacerts -n $WORKSHOP_NAMESPACE
   kubectl delete secret tls-certs -n $WORKSHOP_NAMESPACE
   kubectl delete secret vault-secret -n $WORKSHOP_NAMESPACE
   echo "deleting rest deploy"
