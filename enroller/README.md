@@ -76,7 +76,7 @@ VAULT_TOKEN="<token>"
 curl -X POST http://localhost:8080/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "user116",
+    "username": "user117",
     "user_id": "org1-116"
   }'
 ```
@@ -85,7 +85,7 @@ curl -X POST http://localhost:8080/register \
 curl -X POST http://localhost:8080/enroll \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "user116",
+    "username": "user117",
     "password": "f96a805591c0bee941abfe67670359e1"
   }'
 ```
@@ -94,16 +94,16 @@ curl -X POST http://localhost:8080/enroll \
 curl -X POST http://localhost:8080/register-enroll \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "user116",
+    "username": "user117",
     "user_id": "org1-116"
   }'
 ```
 4. Get User MSP
 ```shell
-curl -X GET http://localhost:8080/msp/user116
+curl -X GET http://localhost:8080/msp/user117
 ```
 
 5. Revoke User
 ```shell
-curl -X DELETE http://localhost:8080/revoke/user116
+curl -X DELETE http://localhost:8080/revoke/user117
 ```

@@ -8,9 +8,9 @@ function launch_enroller() {
 
   # Create secret for RCA Admin MSP
   kubectl create secret -n $WORKSHOP_NAMESPACE generic rcaadmin-msp \
-    --from-file=cacerts=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/cacerts/test-network-org1-ca-ca-localho-st-443.pem \
-    --from-file=keystore=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/keystore/6c28bc5f13c33f014cc69d7f2cd45f2c4471390d686e9021d5427a2f9725da23_sk \
-    --from-file=signcerts=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/signcerts/cert.pem
+    --from-file=cacerts/cacert.pem=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/cacerts/test-network-org1-ca-ca-localho-st-443.pem \
+    --from-file=keystore/key.pem=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/keystore/6c28bc5f13c33f014cc69d7f2cd45f2c4471390d686e9021d5427a2f9725da23_sk \
+    --from-file=signcerts/cert.pem=$WORKSHOP_CRYPTO/enrollments/$ORG/users/rcaadmin/msp/signcerts/cert.pem
 
   # Create secret for TLS certificates
   kubectl create secret -n $WORKSHOP_NAMESPACE generic tls-certs \
