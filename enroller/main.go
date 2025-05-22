@@ -67,7 +67,7 @@ func loadConfig() *Config {
 		TLSCertPath:   getEnvWithDefault("TLS_CERT_PATH", "/etc/tls/tls-cert.pem"),
 		IngressDomain: getEnvWithDefault("WORKSHOP_INGRESS_DOMAIN", "localho.st"),
 		Namespace:     getEnvWithDefault("WORKSHOP_NAMESPACE", "test-network"),
-		VaultAddr:     getEnvWithDefault("VAULT_ADDR", "http://127.0.0.1:8200"),
+		VaultAddr:     getEnvWithDefault("VAULT_ADDR", "http://vault.vault.svc.cluster.local:8200"),
 		VaultToken:    getEnvWithDefault("VAULT_TOKEN", "<vault-token>"),
 		KVPath:        getEnvWithDefault("VAULT_KV_PATH", "fabric/msp"),
 		RCAMSPPath:    getEnvWithDefault("RCAMSP_PATH", "/etc/rcaadmin/msp"),
