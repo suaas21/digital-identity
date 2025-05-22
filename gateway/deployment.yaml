@@ -46,7 +46,7 @@ metadata:
   name: rest-api
   annotations:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: 60s
-    # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
   # labels:
   #   app: rest-api
   #   app.kubernetes.io/instance: fabricpeer

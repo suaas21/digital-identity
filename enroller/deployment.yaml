@@ -71,7 +71,7 @@ metadata:
   name: enroller-api
   annotations:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: 60s
-    # nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
   # labels:
   #   app: enroller-api
   #   app.kubernetes.io/instance: fabricpeer
