@@ -8,10 +8,8 @@ import (
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
 	_ "google.golang.org/grpc/keepalive"
 	"os"
-	"time"
 )
 
 func newGrpcConnection() (*grpc.ClientConn, error) {
@@ -28,14 +26,7 @@ func newGrpcConnection() (*grpc.ClientConn, error) {
 	certPool.AddCert(certificate)
 	transportCredentials := credentials.NewClientTLSFromCert(certPool, gatewayPeer)
 
-	connection, err := grpc.NewClient(
-		peerEndpoint,
-		grpc.WithTransportCredentials(transportCredentials),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:    30 * time.Second, // Send pings every 30s
-			Timeout: 10 * time.Second, // Wait 10s for ping ack
-		}),
-	)
+	connection, err := grpc.NewClient(peerEndpoint, grpc.WithTransportCredentials(transportCredentials))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC connection: %w", err)
 	}
@@ -79,10 +70,10 @@ func newGatewayFromIdentity(grpcConn *grpc.ClientConn, certPEM, keyPEM, mspID st
 		id,
 		client.WithSign(sign),
 		client.WithClientConnection(grpcConn),
-		client.WithEvaluateTimeout(5*time.Second),
-		client.WithEndorseTimeout(15*time.Second),
-		client.WithSubmitTimeout(15*time.Second),
-		client.WithCommitStatusTimeout(5*time.Minute),
+		//client.WithEvaluateTimeout(5*time.Second),
+		//client.WithEndorseTimeout(15*time.Second),
+		//client.WithSubmitTimeout(5*time.Second),
+		//client.WithCommitStatusTimeout(1*time.Minute),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to gateway: %w", err)
