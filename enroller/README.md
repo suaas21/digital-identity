@@ -73,37 +73,37 @@ VAULT_TOKEN="<token>"
 
 1. Register User
 ```shell
-curl -X POST http://localhost:8080/register \
+curl -X POST http://enrollerapi.localho.st/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "user119",
-    "user_id": "org1-119"
+    "username": "user124",
+    "user_id": "org1-124"
   }'
 ```
 2. Enroll User
 ```shell
-curl -X POST http://localhost:8080/enroll \
+curl -X POST http://enrollerapi.localho.st/enroll \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "user119",
+    "username": "user124",
     "password": "f96a805591c0bee941abfe67670359e1"
   }'
 ```
 3. Register & Enroll (Combined)
 ```shell
-curl -X POST http://localhost:8080/register-enroll \
+curl -X POST http://enrollerapi.localho.st/register-enroll \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "user119",
-    "user_id": "org1-119"
+    "username": "user124",
+    "user_id": "org1-124"
   }'
 ```
 4. Get User MSP
 ```shell
-curl -X GET http://localhost:8080/msp/user119
+curl -X GET http://enrollerapi.localho.st/msp/user124
 ```
 
 5. Revoke User
 ```shell
-curl -X DELETE http://localhost:8080/revoke/user119
+curl -X DELETE http://enrollerapi.localho.st/revoke/user124
 ```
