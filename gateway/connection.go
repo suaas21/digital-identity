@@ -69,12 +69,7 @@ func newGatewayFromIdentity(grpcConn *grpc.ClientConn, certPEM, keyPEM, mspID st
 	gw, err := client.Connect(
 		id,
 		client.WithSign(sign),
-		client.WithClientConnection(grpcConn),
-		//client.WithEvaluateTimeout(5*time.Second),
-		//client.WithEndorseTimeout(15*time.Second),
-		//client.WithSubmitTimeout(5*time.Second),
-		//client.WithCommitStatusTimeout(1*time.Minute),
-	)
+		client.WithClientConnection(grpcConn))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to gateway: %w", err)
 	}
